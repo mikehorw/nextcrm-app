@@ -60,6 +60,11 @@ export const getCrmMenuItem = ({ localizations, role }: Props): NavItem => {
         title: localizations.opportunities,
         url: "/crm/opportunities",
       },
+      // OKR Hub fork (OKR-171): revenue goals.
+      {
+        title: "Goals",
+        url: "/crm/goals",
+      },
       {
         title: localizations.contracts,
         url: "/crm/contracts",
