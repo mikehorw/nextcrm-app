@@ -12,7 +12,9 @@
  */
 import fs from "node:fs";
 import path from "node:path";
-import { prismaBase as db } from "@/lib/prisma-base";
+import { createRequire } from "node:module";
+import { PrismaClient } from "@prisma/client";
+import { prismaBase } from "@/lib/prisma-base";
 import {
   type CapsuleEntry,
   type CapsuleKase,
@@ -44,6 +46,35 @@ const OWNER = arg("--owner") ?? "mike@mikehorw.co.uk";
 // Added organisations use negative IDs so they map stably across re-runs.
 const OVERRIDES = arg("--overrides");
 const SOURCE = "capsule";
+
+/**
+ * Normally the app's own client (Postgres over TCP). Where only HTTPS gets out
+ * (Claude's workspace), set NEON_DEPS_DIR to a folder with @prisma/adapter-neon,
+ * @neondatabase/serverless, ws and https-proxy-agent installed: the import then
+ * talks to Neon over a websocket through HTTPS_PROXY. Those packages are not
+ * app dependencies on purpose.
+ */
+function makeClient(): PrismaClient {
+  const deps = process.env.NEON_DEPS_DIR;
+  if (!deps) return prismaBase;
+  const req = createRequire(path.join(deps, "package.json"));
+  const { neonConfig } = req("@neondatabase/serverless");
+  const { PrismaNeon } = req("@prisma/adapter-neon");
+  const WS = req("ws");
+  const { HttpsProxyAgent } = req("https-proxy-agent");
+  if (process.env.HTTPS_PROXY) {
+    const agent = new HttpsProxyAgent(process.env.HTTPS_PROXY);
+    neonConfig.webSocketConstructor = class extends WS {
+      constructor(url: string, protocols?: string | string[]) {
+        super(url, protocols, { agent });
+      }
+    };
+  } else {
+    neonConfig.webSocketConstructor = WS;
+  }
+  return new PrismaClient({ adapter: new PrismaNeon({ connectionString: process.env.DATABASE_URL }) });
+}
+const db = makeClient();
 
 const load = <T>(name: string): T => JSON.parse(fs.readFileSync(path.join(DIR, `${name}.json`), "utf8"));
 
