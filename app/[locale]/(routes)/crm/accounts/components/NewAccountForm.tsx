@@ -29,6 +29,10 @@ import { Textarea } from "@/components/ui/textarea";
 import { UserSearchCombobox } from "@/components/ui/user-search-combobox";
 import { getPriceListOptions } from "@/actions/crm/price-lists/queries";
 import { createAccount } from "@/actions/crm/accounts/create-account";
+import {
+  OkrhubAccountTagsField,
+  okrhubAccountSchema,
+} from "@/components/okrhub/account-tags-field";
 import { getRegistryCountries, lookupCompany } from "@/actions/crm/accounts/lookup-company";
 import { VatCheckButton } from "./VatCheckButton";
 import { useSession } from "@/lib/auth-client";
@@ -70,6 +74,7 @@ export function NewAccountForm({ industries, onFinish }: Props) {
     member_of: z.string().max(100).optional(),
     industry: z.string().optional(),
     pricelist_id: z.string().optional(),
+    ...okrhubAccountSchema,
   });
 
   type NewAccountFormValues = z.infer<typeof formSchema>;
@@ -85,6 +90,7 @@ export function NewAccountForm({ industries, onFinish }: Props) {
   const form = useForm<NewAccountFormValues>({
     resolver: zodResolver(formSchema),
     mode: "onBlur",
+    defaultValues: { tags: [] },
   });
 
   const [registryCountries, setRegistryCountries] = useState<string[]>([]);
@@ -503,6 +509,10 @@ export function NewAccountForm({ industries, onFinish }: Props) {
                     <FormMessage />
                   </FormItem>
                 )}
+              />
+              <OkrhubAccountTagsField
+                control={form.control}
+                disabled={form.formState.isSubmitting}
               />
               <FormField
                 control={form.control}

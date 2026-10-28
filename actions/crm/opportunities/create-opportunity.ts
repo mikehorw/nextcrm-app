@@ -7,6 +7,7 @@ import { inngest } from "@/inngest/client";
 import { writeAuditLog } from "@/lib/audit-log";
 import { getSnapshotRate, getDefaultCurrency } from "@/lib/currency";
 import { handleStageTransition } from "@/lib/crm/stage-transition";
+import { okrhubOpportunityData, type OkrhubOpportunityInput } from "@/lib/okrhub/fields";
 import {
   requireAuthenticated,
   assertCanWriteAccount,
@@ -31,7 +32,7 @@ export const createOpportunity = async (data: {
   next_step?: string;
   sales_stage?: string;
   type?: string;
-}) => {
+} & OkrhubOpportunityInput) => {
   const {
     account,
     assigned_to,
@@ -96,6 +97,7 @@ export const createOpportunity = async (data: {
         stage_entered_at: new Date(),
         status: "ACTIVE",
         type: type || undefined,
+        ...okrhubOpportunityData(data),
       },
     });
 

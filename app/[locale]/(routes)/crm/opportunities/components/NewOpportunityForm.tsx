@@ -45,6 +45,10 @@ import {
 } from "@prisma/client";
 import { createOpportunity } from "@/actions/crm/opportunities/create-opportunity";
 import { useSession } from "@/lib/auth-client";
+import {
+  OkrhubOpportunityFields,
+  okrhubOpportunitySchema,
+} from "@/components/okrhub/opportunity-fields";
 
 //TODO: fix all the types
 type NewTaskFormProps = {
@@ -117,6 +121,7 @@ export function NewOpportunityForm({
     account: z.string(),
     contact: z.string(),
     campaign: z.string(),
+    ...okrhubOpportunitySchema,
   });
 
   type NewAccountFormValues = z.infer<typeof formSchema>;
@@ -137,6 +142,10 @@ export function NewOpportunityForm({
       campaign: "",
       description: "",
       name: "",
+      brand: "",
+      service_lines: [],
+      value_types: [],
+      lost_reason: "",
     },
   });
 
@@ -166,6 +175,10 @@ export function NewOpportunityForm({
         account: "",
         contact: "",
         campaign: "",
+        brand: "",
+        service_lines: [],
+        value_types: [],
+        lost_reason: "",
       });
       onDialogClose();
     }
@@ -294,6 +307,10 @@ export function NewOpportunityForm({
                   <FormMessage />
                 </FormItem>
               )}
+            />
+            <OkrhubOpportunityFields
+              control={form.control}
+              disabled={form.formState.isSubmitting}
             />
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">

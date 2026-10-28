@@ -3,6 +3,7 @@ import { prismadb } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
 import { pluginRuleErrorMessage } from "@/lib/plugins/action-errors";
 import { inngest } from "@/inngest/client";
+import { normaliseTags } from "@/lib/okrhub/fields";
 import { writeAuditLog, diffObjects } from "@/lib/audit-log";
 import {
   requireAuthenticated,
@@ -38,6 +39,7 @@ export const updateAccount = async (data: {
   member_of?: string | null;
   industry?: string;
   pricelist_id?: string | null;
+  tags?: string[]; // OKR Hub fork (OKR-170)
 }) => {
   const { id, ...rest } = data;
   if (!id) return { error: "id is required" };
@@ -65,6 +67,7 @@ export const updateAccount = async (data: {
         updatedBy: user.id,
         ...rest,
         ...(rest.pricelist_id === "" ? { pricelist_id: null } : {}),
+        ...(rest.tags !== undefined ? { tags: normaliseTags(rest.tags) } : {}),
         // The partner is set only through setAccountPartner (admin/manager).
         partnerUserId: undefined,
         // A partner edits ordinary fields only, never the internal owner.

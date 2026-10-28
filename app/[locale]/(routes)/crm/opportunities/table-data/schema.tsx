@@ -21,6 +21,11 @@ export const opportunitySchema = z.object({
   assigned_account: z.object({}).optional().nullable(),
   assigned_sales_stage: z.object({}).optional().nullable(),
   assigned_to_user: z.object({}).optional().nullable(),
+  // OKR Hub fork (OKR-170)
+  brand: z.string().nullable().optional(),
+  service_lines: z.array(z.string()).optional(),
+  value_types: z.array(z.string()).optional(),
+  lost_reason: z.string().nullable().optional(),
 });
 
 export type Opportunity = z.infer<typeof opportunitySchema>;

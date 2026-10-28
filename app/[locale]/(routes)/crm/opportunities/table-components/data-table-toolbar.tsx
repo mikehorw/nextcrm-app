@@ -9,6 +9,7 @@ import { DataTableViewOptions } from "./data-table-view-options";
 
 import { statuses } from "../table-data/data";
 import { DataTableFacetedFilter } from "./data-table-faceted-filter";
+import { BRANDS } from "@/lib/okrhub/fields";
 
 interface DataTableToolbarProps<TData> {
   table: Table<TData>;
@@ -43,6 +44,14 @@ export function DataTableToolbar<TData>({
           }
           className="h-8 w-[150px] lg:w-[250px]"
         /> */}
+        {/* OKR Hub fork (OKR-170) */}
+        {table.getColumn("brand") && (
+          <DataTableFacetedFilter
+            column={table.getColumn("brand")}
+            title="Brand"
+            options={BRANDS.map((b) => ({ label: b, value: b }))}
+          />
+        )}
         {table.getColumn("status") && (
           <DataTableFacetedFilter
             column={table.getColumn("status")}

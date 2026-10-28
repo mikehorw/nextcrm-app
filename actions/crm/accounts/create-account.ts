@@ -3,6 +3,7 @@ import { prismadb } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
 import { pluginRuleErrorMessage } from "@/lib/plugins/action-errors";
 import { inngest } from "@/inngest/client";
+import { normaliseTags } from "@/lib/okrhub/fields";
 import { writeAuditLog } from "@/lib/audit-log";
 import { requireAuthenticated, AuthenticationError } from "@/lib/authz";
 
@@ -31,6 +32,7 @@ export const createAccount = async (data: {
   member_of?: string;
   industry?: string;
   pricelist_id?: string | null;
+  tags?: string[]; // OKR Hub fork (OKR-170)
 }) => {
   // Plain create: the row is owned by its creator, so authentication is
   // sufficient — no object-level write assert needed.
@@ -57,6 +59,7 @@ export const createAccount = async (data: {
         assigned_to: user.role === "partner" ? null : data.assigned_to || user.id,
         industry: data.industry || undefined,
         pricelist_id: data.pricelist_id || undefined,
+        tags: normaliseTags(data.tags),
         // The partner is set only through setAccountPartner (admin/manager),
         // except that a partner's own new account names him.
         partnerUserId: user.role === "partner" ? user.id : undefined,

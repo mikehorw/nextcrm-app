@@ -37,6 +37,10 @@ import { Calendar } from "@/components/ui/calendar";
 import { UserSearchCombobox } from "@/components/ui/user-search-combobox";
 import { AccountSearchCombobox } from "@/components/ui/account-search-combobox";
 import { updateOpportunity } from "@/actions/crm/opportunities/update-opportunity";
+import {
+  OkrhubOpportunityFields,
+  okrhubOpportunitySchema,
+} from "@/components/okrhub/opportunity-fields";
 
 type ConfigItem = { id: string; name: string };
 
@@ -78,6 +82,7 @@ export function UpdateOpportunityForm({
     account: z.string().nullable().optional(),
     contact: z.string().nullable().optional(),
     campaign: z.string().nullable().optional(),
+    ...okrhubOpportunitySchema,
   });
 
   type NewAccountFormValues = z.infer<typeof formSchema>;
@@ -99,6 +104,10 @@ export function UpdateOpportunityForm({
       campaign: initialData.campaign ?? "",
       type: initialData.type ?? "",
       sales_stage: initialData.sales_stage ?? "",
+      brand: initialData.brand ?? "",
+      service_lines: initialData.service_lines ?? [],
+      value_types: initialData.value_types ?? [],
+      lost_reason: initialData.lost_reason ?? "",
     },
   });
 
@@ -238,6 +247,10 @@ export function UpdateOpportunityForm({
                   <FormMessage />
                 </FormItem>
               )}
+            />
+            <OkrhubOpportunityFields
+              control={form.control}
+              disabled={form.formState.isSubmitting}
             />
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">

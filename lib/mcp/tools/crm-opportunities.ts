@@ -1,5 +1,11 @@
 import { z } from "zod";
 import { prismadb } from "@/lib/prisma";
+import { okrhubOpportunityMcpShape } from "@/lib/okrhub/mcp";
+import {
+  okrhubOpportunityData,
+  splitOkrhubOpportunity,
+  type OkrhubOpportunityInput,
+} from "@/lib/okrhub/fields";
 import type { AuthzUser } from "@/lib/authz";
 import {
   opportunityReadScopeWhere,
@@ -112,9 +118,10 @@ export const crmOpportunityTools = [
       expected_revenue: z.number().int().min(0).optional(),
       currency: z.string().optional(),
       next_step: z.string().optional(),
+      ...okrhubOpportunityMcpShape,
     }),
     async handler(
-      args: {
+      argsIn: OkrhubOpportunityInput & {
         name: string;
         description?: string;
         close_date?: string;
@@ -125,6 +132,7 @@ export const crmOpportunityTools = [
       },
       userId: string
     ) {
+      const [okrhub, args] = splitOkrhubOpportunity(argsIn);
       const { name, budget, expected_revenue, close_date, ...rest } = args;
       const opp = await prismadb.crm_Opportunities.create({
         data: {
@@ -134,6 +142,7 @@ export const crmOpportunityTools = [
           ...(budget !== undefined && { budget }),
           ...(expected_revenue !== undefined && { expected_revenue }),
           ...(close_date !== undefined && { close_date: new Date(close_date) }),
+          ...okrhubOpportunityData(okrhub),
           assigned_to: userId,
           createdBy: userId,
           updatedBy: userId,
@@ -159,9 +168,10 @@ export const crmOpportunityTools = [
       contact: z.string().uuid().nullable().optional(),
       // Reassign the owner. Use crm_list_users to resolve a person to their ID.
       assigned_to: z.string().uuid().nullable().optional(),
+      ...okrhubOpportunityMcpShape,
     }),
     async handler(
-      args: {
+      argsIn: OkrhubOpportunityInput & {
         id: string;
         name?: string;
         description?: string;
@@ -177,6 +187,7 @@ export const crmOpportunityTools = [
       userId: string,
       user: AuthzUser
     ) {
+      const [okrhub, args] = splitOkrhubOpportunity(argsIn);
       await assertScopeOrNotFound(
         () => assertCanWriteOpportunity(user, args.id),
         "Opportunity"
@@ -206,6 +217,7 @@ export const crmOpportunityTools = [
           ...(account !== undefined && { account }),
           ...(contact !== undefined && { contact }),
           ...(assigned_to !== undefined && { assigned_to }),
+          ...okrhubOpportunityData(okrhub),
           updatedBy: userId,
         },
       });

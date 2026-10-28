@@ -7,6 +7,7 @@ import { writeAuditLog, diffObjects } from "@/lib/audit-log";
 import { getSnapshotRate, getDefaultCurrency } from "@/lib/currency";
 import { handleStageTransition } from "@/lib/crm/stage-transition";
 import { qualifiedEntryBlockReason } from "@/lib/crm/approval-gate";
+import { okrhubOpportunityData, type OkrhubOpportunityInput } from "@/lib/okrhub/fields";
 import {
   requireAuthenticated,
   assertCanWriteOpportunity,
@@ -33,7 +34,7 @@ export const updateOpportunity = async (data: {
   next_step?: string;
   sales_stage?: string;
   type?: string;
-}) => {
+} & OkrhubOpportunityInput) => {
   const {
     id,
     account,
@@ -106,6 +107,7 @@ export const updateOpportunity = async (data: {
         sales_stage: sales_stage || undefined,
         status: "ACTIVE",
         type: type || undefined,
+        ...okrhubOpportunityData(data),
       },
     });
     await handleStageTransition({

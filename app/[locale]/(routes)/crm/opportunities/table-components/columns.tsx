@@ -146,6 +146,17 @@ export const createColumns = (config: OpportunityConfig): ColumnDef<Opportunity>
     enableSorting: false,
     enableHiding: false,
   },
+  // OKR Hub fork (OKR-170): Brand column, filterable from the toolbar.
+  {
+    accessorKey: "brand",
+    header: ({ column }) => (
+      <DataTableColumnHeader column={column} title="Brand" />
+    ),
+    cell: ({ row }) => (
+      <div className="w-[150px]">{(row.getValue("brand") as string) || "-"}</div>
+    ),
+    filterFn: (row, id, value) => value.includes(row.getValue(id) ?? ""),
+  },
   {
     accessorKey: "status",
     header: ({ column }) => (

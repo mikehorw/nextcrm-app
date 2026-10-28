@@ -28,6 +28,7 @@ import { formatCurrency, convertAmount, getExchangeRates, getDefaultCurrency } f
 import { Decimal } from "@prisma/client/runtime/client";
 import { cookies } from "next/headers";
 import { serializeDecimals } from "@/lib/serialize-decimals";
+import { OkrhubOpportunityDetails } from "@/components/okrhub/opportunity-details";
 
 interface OppsViewProps {
   data: {
@@ -203,6 +204,12 @@ export async function BasicView({ data }: OppsViewProps) {
               </p>
             </div>
           </div>
+          <OkrhubOpportunityDetails
+            brand={data.brand}
+            service_lines={data.service_lines}
+            value_types={data.value_types}
+            lost_reason={data.lost_reason}
+          />
           <div className="-mx-2 flex items-start space-x-4 rounded-md p-2 transition-all hover:bg-accent hover:text-accent-foreground">
             <Landmark className="mt-px h-5 w-5" />
             <div className="space-y-1">

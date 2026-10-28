@@ -48,6 +48,8 @@ model crm_Accounts {
   deletedBy            String?   @db.Uuid
   /// External partner (role partner) who looks after this account; one per account.
   partnerUserId        String?   @db.Uuid
+  /// OKR Hub fork: free-form tags (e.g. brand relationship, Partner Business).
+  tags                 String[]  @default([])
 
   contacts           crm_Contacts[]
   leads              crm_Leads[]
@@ -248,6 +250,14 @@ model crm_Opportunities {
   sales_stage      String?                 @db.Uuid
   type             String?                 @db.Uuid
   status           crm_Opportunity_Status? @default(ACTIVE)
+  /// OKR Hub fork: business line the deal belongs to (see lib/okrhub/fields.ts).
+  brand            String?
+  /// OKR Hub fork: one or more service lines (see lib/okrhub/fields.ts).
+  service_lines    String[]                @default([])
+  /// OKR Hub fork: one or more commercial models (see lib/okrhub/fields.ts).
+  value_types      String[]                @default([])
+  /// OKR Hub fork: why the deal was lost (see lib/okrhub/fields.ts).
+  lost_reason      String?
 
   assigned_type        crm_Opportunities_Type?         @relation(fields: [type], references: [id])
   assigned_sales_stage crm_Opportunities_Sales_Stages? @relation("assinged_sales_stage", fields: [sales_stage], references: [id])

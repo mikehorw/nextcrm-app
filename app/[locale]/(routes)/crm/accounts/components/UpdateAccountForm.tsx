@@ -31,6 +31,10 @@ import { Textarea } from "@/components/ui/textarea";
 import { Skeleton } from "@/components/ui/skeleton";
 import { UserSearchCombobox } from "@/components/ui/user-search-combobox";
 import { updateAccount } from "@/actions/crm/accounts/update-account";
+import {
+  OkrhubAccountTagsField,
+  okrhubAccountSchema,
+} from "@/components/okrhub/account-tags-field";
 import { getIndustries } from "@/actions/crm/get-industries";
 import { getPriceListOptions } from "@/actions/crm/price-lists/queries";
 import { VatCheckButton } from "./VatCheckButton";
@@ -91,6 +95,7 @@ export function UpdateAccountForm({
     member_of: z.string().max(100).optional().nullable(),
     industry: z.string().optional().nullable(),
     pricelist_id: z.string().optional().nullable(),
+    ...okrhubAccountSchema,
   });
 
   type NewAccountFormValues = z.infer<typeof formSchema>;
@@ -520,6 +525,10 @@ export function UpdateAccountForm({
                     <FormMessage />
                   </FormItem>
                 )}
+              />
+              <OkrhubAccountTagsField
+                control={form.control}
+                disabled={form.formState.isSubmitting}
               />
               <FormField
                 control={form.control}

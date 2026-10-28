@@ -232,6 +232,22 @@ export async function BasicView({ data }: OppsViewProps) {
                   </p>
                 </div>
               </div>
+              {/* OKR Hub fork (OKR-170) */}
+              <div className="-mx-2 flex items-start space-x-4 rounded-md p-2 transition-all hover:bg-accent hover:text-accent-foreground">
+                <Tags className="mt-px h-5 w-5" />
+                <div className="space-y-1">
+                  <p className="text-sm font-medium leading-none">Tags</p>
+                  <div className="flex flex-wrap gap-1 text-sm text-muted-foreground">
+                    {data.tags?.length
+                      ? data.tags.map((tag: string) => (
+                          <span key={tag} className="rounded-sm bg-secondary px-1.5 py-0.5 text-secondary-foreground">
+                            {tag}
+                          </span>
+                        ))
+                      : "N/A"}
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
         </CardContent>

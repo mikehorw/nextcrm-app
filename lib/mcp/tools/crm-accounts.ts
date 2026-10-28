@@ -1,5 +1,7 @@
 import { z } from "zod";
 import { prismadb } from "@/lib/prisma";
+import { okrhubAccountMcpShape } from "@/lib/okrhub/mcp";
+import { normaliseTags } from "@/lib/okrhub/fields";
 import type { AuthzUser } from "@/lib/authz";
 import {
   accountReadScopeWhere,
@@ -103,6 +105,7 @@ export const crmAccountTools = [
       description: z.string().optional(),
       office_phone: z.string().optional(),
       website: z.string().optional(),
+      ...okrhubAccountMcpShape,
     }),
     async handler(
       args: {
@@ -111,15 +114,17 @@ export const crmAccountTools = [
         description?: string;
         office_phone?: string;
         website?: string;
+        tags?: string[];
       },
       userId: string
     ) {
-      const { name, ...rest } = args;
+      const { name, tags, ...rest } = args;
       const account = await prismadb.crm_Accounts.create({
         data: {
           v: 0,
           name,
           ...rest,
+          tags: normaliseTags(tags),
           assigned_to: userId,
           createdBy: userId,
           updatedBy: userId,
@@ -141,6 +146,7 @@ export const crmAccountTools = [
       website: z.string().optional(),
       // Reassign the owner. Use crm_list_users to resolve a person to their ID.
       assigned_to: z.string().uuid().nullable().optional(),
+      ...okrhubAccountMcpShape,
     }),
     async handler(
       args: {
@@ -151,17 +157,19 @@ export const crmAccountTools = [
         office_phone?: string;
         website?: string;
         assigned_to?: string | null;
+        tags?: string[];
       },
       userId: string,
       user: AuthzUser
     ) {
       await assertWritableAccount(user, args.id);
       if (args.assigned_to) await assertAssignableUser(args.assigned_to, user);
-      const { id, assigned_to, ...updateData } = args;
+      const { id, assigned_to, tags, ...updateData } = args;
       const account = await prismadb.crm_Accounts.update({
         where: { id },
         data: {
           ...updateData,
+          ...(tags !== undefined && { tags: normaliseTags(tags) }),
           ...(assigned_to !== undefined && { assigned_to }),
           updatedBy: userId,
         },
