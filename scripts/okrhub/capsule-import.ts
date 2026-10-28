@@ -38,6 +38,11 @@ const arg = (name: string) => {
 const LIVE = args.includes("--live");
 const DIR = arg("--dir") ?? "capsule-export";
 const OWNER = arg("--owner") ?? "mike@mikehorw.co.uk";
+// Optional JSON of Mike's corrections, kept outside the repo (it names people):
+// { "skipPeople": [capsuleId], "addOrganisations": [{ "id": -1, "name": "...",
+//   "website": "https://...", "people": [capsuleId] }] }
+// Added organisations use negative IDs so they map stably across re-runs.
+const OVERRIDES = arg("--overrides");
 const SOURCE = "capsule";
 
 const load = <T>(name: string): T => JSON.parse(fs.readFileSync(path.join(DIR, `${name}.json`), "utf8"));
@@ -117,7 +122,28 @@ async function upsert(
 // ---- main ----------------------------------------------------------------
 
 async function main() {
-  const parties = load<CapsuleParty[]>("parties");
+  let parties = load<CapsuleParty[]>("parties");
+  if (OVERRIDES) {
+    const o = JSON.parse(fs.readFileSync(OVERRIDES, "utf8")) as {
+      skipPeople?: number[];
+      addOrganisations?: { id: number; name: string; website?: string; people?: number[] }[];
+    };
+    const skip = new Set(o.skipPeople ?? []);
+    for (const p of parties.filter((x) => skip.has(x.id))) {
+      report.skipped.push({ kind: "person", id: p.id, label: `${p.firstName ?? ""} ${p.lastName ?? ""}`.trim(), reason: "Mike: don't migrate" });
+    }
+    parties = parties.filter((x) => !skip.has(x.id));
+    for (const org of o.addOrganisations ?? []) {
+      if (org.id >= 0) throw new Error(`Added organisation ${org.name} needs a negative id`);
+      parties.push({
+        id: org.id, type: "organisation", name: org.name, createdAt: new Date().toISOString(),
+        emailAddresses: [], phoneNumbers: [], addresses: [], tags: [], fields: [],
+        websites: org.website ? [{ service: "URL", address: org.website, url: org.website }] : [],
+      });
+      for (const p of parties) if (org.people?.includes(p.id)) p.organisation = { id: org.id };
+      report.warnings.push(`Added organisation (not in Capsule): ${org.name}`);
+    }
+  }
   const opps = load<CapsuleOpportunity[]>("opportunities");
   const entries = load<CapsuleEntry[]>("entries");
   const tasks = load<CapsuleTask[]>("tasks");
