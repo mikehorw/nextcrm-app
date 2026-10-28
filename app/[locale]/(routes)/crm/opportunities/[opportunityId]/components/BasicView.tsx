@@ -29,6 +29,8 @@ import { Decimal } from "@prisma/client/runtime/client";
 import { cookies } from "next/headers";
 import { serializeDecimals } from "@/lib/serialize-decimals";
 import { OkrhubOpportunityDetails } from "@/components/okrhub/opportunity-details";
+import { OutcomeBadge } from "@/components/okrhub/outcome-badge";
+import { MarkLostButton } from "@/components/okrhub/mark-lost-button";
 
 interface OppsViewProps {
   data: {
@@ -62,6 +64,7 @@ export async function BasicView({ data }: OppsViewProps) {
           <div>
             <CardTitle className="flex items-center gap-2">
               {data.name}
+              <OutcomeBadge status={data.status} />
               {data.approval_status === "PENDING" && (
                 <Badge variant="secondary">Approval pending</Badge>
               )}
@@ -79,6 +82,7 @@ export async function BasicView({ data }: OppsViewProps) {
             data.approval_status === "REJECTED") && (
             <RequestApprovalButton opportunityId={data.id} />
           )}
+          {data.status === "ACTIVE" && <MarkLostButton opportunityId={data.id} />}
           <OpportunityDetailActions
             opportunity={serializeDecimals(data)}
             saleTypes={saleTypes}
@@ -209,6 +213,8 @@ export async function BasicView({ data }: OppsViewProps) {
             service_lines={data.service_lines}
             value_types={data.value_types}
             lost_reason={data.lost_reason}
+            won_at={data.won_at}
+            lost_at={data.lost_at}
           />
           <div className="-mx-2 flex items-start space-x-4 rounded-md p-2 transition-all hover:bg-accent hover:text-accent-foreground">
             <Landmark className="mt-px h-5 w-5" />

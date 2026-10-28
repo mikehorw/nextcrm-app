@@ -105,7 +105,8 @@ export const updateOpportunity = async (data: {
         name,
         next_step,
         sales_stage: sales_stage || undefined,
-        status: "ACTIVE",
+        // OKR Hub fork (OKR-171): status is no longer forced to ACTIVE, so saving
+        // a won or lost deal keeps it won or lost. Stage moves set it instead.
         type: type || undefined,
         ...okrhubOpportunityData(data),
       },

@@ -1,3 +1,8 @@
+// OKR Hub fork (OKR-171): won/lost outcome is tested in __tests__/okrhub.
+jest.mock("@/lib/okrhub/outcome", () => ({
+  ...jest.requireActual("@/lib/okrhub/outcome"),
+  applyStageOutcome: jest.fn(),
+}));
 jest.mock("@/lib/auth-server", () => ({ getSession: jest.fn() }));
 // convertTargetToDeal now resolves the caller via requireAuthenticated and
 // guards on assertCanWriteTarget; those are pass-through here (the guard itself

@@ -258,6 +258,10 @@ model crm_Opportunities {
   value_types      String[]                @default([])
   /// OKR Hub fork: why the deal was lost (see lib/okrhub/fields.ts).
   lost_reason      String?
+  /// OKR Hub fork (OKR-171): set when the deal enters the Won stage; goals count by this date.
+  won_at           DateTime?
+  /// OKR Hub fork (OKR-171): set when the deal is marked lost (status INACTIVE).
+  lost_at          DateTime?
 
   assigned_type        crm_Opportunities_Type?         @relation(fields: [type], references: [id])
   assigned_sales_stage crm_Opportunities_Sales_Stages? @relation("assinged_sales_stage", fields: [sales_stage], references: [id])
@@ -286,6 +290,25 @@ model crm_Opportunities {
   @@index([close_date])
   @@index([status, sales_stage])
   @@index([deletedAt])
+  @@index([won_at])
+}
+
+/// OKR Hub fork (OKR-171): revenue goal. Progress = value of opportunities won
+/// (won_at) between start_date and end_date, filtered by brand when set.
+model crm_Goals {
+  id         String    @id @default(uuid()) @db.Uuid
+  name       String
+  amount     Decimal   @db.Decimal(18, 2)
+  currency   String    @default("GBP") @db.VarChar(3)
+  start_date DateTime
+  end_date   DateTime
+  brand      String?
+  createdBy  String?   @db.Uuid
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+  deletedAt  DateTime?
+
+  @@index([start_date, end_date])
 }
 
 enum crm_Approval_Status {

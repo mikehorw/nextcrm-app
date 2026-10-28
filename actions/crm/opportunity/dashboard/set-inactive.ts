@@ -1,5 +1,6 @@
 "use server";
 import { prismadb } from "@/lib/prisma";
+import { lostData } from "@/lib/okrhub/outcome";
 import {
   requireAuthenticated,
   assertCanWriteOpportunity,
@@ -31,9 +32,8 @@ export async function setInactiveOpportunity(id: string) {
       where: {
         id,
       },
-      data: {
-        status: "INACTIVE",
-      },
+      // OKR Hub fork (OKR-171): record when it was lost.
+      data: lostData(null),
     });
 
     console.log(result, "result");

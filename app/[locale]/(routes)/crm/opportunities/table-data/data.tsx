@@ -12,7 +12,7 @@ export const statuses = [
   },
   {
     value: "INACTIVE",
-    label: "Inactive",
+    label: "Lost", // OKR Hub fork (OKR-171): INACTIVE = lost
     icon: CircleIcon,
   },
   {
@@ -22,7 +22,7 @@ export const statuses = [
   },
   {
     value: "CLOSED",
-    label: "Closed",
+    label: "Won", // OKR Hub fork (OKR-171): CLOSED = won
     icon: StopwatchIcon,
   },
 ];

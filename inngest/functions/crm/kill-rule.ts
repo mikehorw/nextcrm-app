@@ -5,6 +5,7 @@ import { isKillDue } from "@/lib/crm/funnel-timers";
 import { getFunnelSettings } from "@/lib/crm/funnel-settings";
 import { getLastClientActivity } from "@/lib/crm/client-activity";
 import { writeAuditLog } from "@/lib/audit-log";
+import { lostData, STALE_LOST_REASON } from "@/lib/okrhub/outcome";
 
 // Spec §3.5 kill rule: killAfterDays (default 45) of client silence on a
 // Qualified deal -> Lost (status CLOSED per the 2026-07-18 decision) + rep
@@ -45,14 +46,17 @@ export const killRule = inngest.createFunction(
 
         await prismadb.crm_Opportunities.update({
           where: { id: opp.id },
-          data: { status: "CLOSED", updatedBy: opp.assigned_to ?? undefined },
+          // OKR Hub fork (OKR-171): lost (INACTIVE, "Became Stale"), not CLOSED,
+          // because CLOSED means won and would count towards goals.
+          data: { ...lostData(STALE_LOST_REASON), updatedBy: opp.assigned_to ?? undefined },
         });
         await writeAuditLog({
           entityType: "opportunity",
           entityId: opp.id,
           action: "updated",
           changes: [
-            { field: "status", old: "ACTIVE", new: "CLOSED" },
+            { field: "status", old: "ACTIVE", new: "INACTIVE" },
+            { field: "lost_reason", old: null, new: STALE_LOST_REASON },
             { field: "close_reason", old: null, new: `${settings.killAfterDays}-day kill rule` },
           ],
           userId: opp.assigned_to ?? null,

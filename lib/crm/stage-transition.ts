@@ -1,5 +1,6 @@
 import { prismadb } from "@/lib/prisma";
 import { inngest } from "@/inngest/client";
+import { applyStageOutcome } from "@/lib/okrhub/outcome";
 
 // Single funnel-transition chokepoint: every action that writes
 // crm_Opportunities.sales_stage calls this after its update so the
@@ -16,6 +17,8 @@ export async function handleStageTransition(opts: {
     where: { id: opportunityId },
     data: { stage_entered_at: new Date() },
   });
+  // OKR Hub fork (OKR-171): entering the Won stage marks the deal won.
+  await applyStageOutcome({ opportunityId, fromStage, toStage });
   await inngest.send({
     name: "crm/opportunity.stage-changed",
     data: { record_id: opportunityId, to_stage: toStage },

@@ -44,5 +44,9 @@ it("sets inactive for a writable opportunity", async () => {
   assertOpp.mockResolvedValue(undefined);
   await setInactiveOpportunity("o-1");
   expect(assertOpp).toHaveBeenCalledWith(OWNER, "o-1");
-  expect(oUpdate).toHaveBeenCalledWith({ where: { id: "o-1" }, data: { status: "INACTIVE" } });
+  // OKR Hub fork (OKR-171): thumbs-down also records lost_at and clears won_at.
+  expect(oUpdate).toHaveBeenCalledWith({
+    where: { id: "o-1" },
+    data: { status: "INACTIVE", lost_at: expect.any(Date), lost_reason: null, won_at: null },
+  });
 });
