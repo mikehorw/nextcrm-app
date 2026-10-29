@@ -18,7 +18,7 @@ export type RevenueDoc = {
   exchange_rate: Decimal | number | string | null;
 };
 
-export type AccountBrandInfo = { name: string; tags: string[]; opportunityBrands: (string | null)[] };
+export type AccountBrandInfo = { id?: string; name: string; tags: string[]; opportunityBrands: (string | null)[] };
 
 const EXCLUDED = new Set(["draft", "cancelled"]);
 
@@ -40,6 +40,32 @@ export function brandOfAccount(a: AccountBrandInfo): string | null {
   const oppBrands = Array.from(new Set(a.opportunityBrands.filter((b): b is string => !!b)));
   if (tagBrands.length === 0 && oppBrands.length === 1) return oppBrands[0];
   return null;
+}
+
+/**
+ * OKR-175: FreeAgent contact URL -> the CRM account it is (hand-set, else the one
+ * account with the same normalised name) and its brand (hand-set brand first).
+ */
+export function resolveClients(
+  contacts: { url: string; name: string; brand_override: string | null; account_override?: string | null }[],
+  accounts: AccountBrandInfo[],
+): Map<string, { accountId: string | null; brand: string | null }> {
+  const byId = new Map(accounts.filter((a) => a.id).map((a) => [a.id as string, a]));
+  const byName = new Map<string, AccountBrandInfo | null>();
+  for (const a of accounts) {
+    const key = normaliseName(a.name);
+    if (!key) continue;
+    byName.set(key, byName.has(key) ? null : a); // ambiguous names match nothing
+  }
+  const brands = resolveBrands(contacts, accounts);
+  const out = new Map<string, { accountId: string | null; brand: string | null }>();
+  for (const c of contacts) {
+    const account = (c.account_override ? byId.get(c.account_override) : undefined) ?? byName.get(normaliseName(c.name)) ?? null;
+    const override = c.brand_override && (BRANDS as readonly string[]).includes(c.brand_override) ? c.brand_override : null;
+    const brand = override ?? (c.account_override && account ? brandOfAccount(account) : null) ?? brands.get(c.url) ?? null;
+    out.set(c.url, { accountId: account?.id ?? null, brand });
+  }
+  return out;
 }
 
 /** Map of FreeAgent contact URL -> brand (or null when it can't be told). */

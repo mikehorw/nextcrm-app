@@ -6,7 +6,7 @@ import { prismadb } from "@/lib/prisma";
 import { requireRole, AuthenticationError, AuthorizationError } from "@/lib/authz";
 import { BRANDS } from "@/lib/okrhub/fields";
 import { disconnect, freeAgentConfigured, getConnection, syncFreeAgent } from "@/lib/okrhub/freeagent";
-import { countsAsRevenue, netInGBP, resolveBrands } from "@/lib/okrhub/revenue";
+import { countsAsRevenue, netInGBP, resolveClients } from "@/lib/okrhub/revenue";
 
 async function guard() {
   try {
@@ -26,6 +26,8 @@ export type FreeAgentClientRow = {
   name: string;
   brand: string | null; // resolved
   override: string | null;
+  accountId: string | null; // resolved CRM account
+  accountOverride: string | null;
   revenue: number; // net GBP, all synced invoices less credit notes
 };
 
@@ -35,6 +37,7 @@ export type FreeAgentStatus = {
   lastSyncAt: string | null;
   lastSyncError: string | null;
   clients: FreeAgentClientRow[];
+  accounts: { id: string; name: string }[];
 };
 
 export async function getFreeAgentStatus(): Promise<FreeAgentStatus | null> {
@@ -46,19 +49,20 @@ export async function getFreeAgentStatus(): Promise<FreeAgentStatus | null> {
     lastSyncAt: c?.last_sync_at?.toISOString() ?? null,
     lastSyncError: c?.last_sync_error ?? null,
   };
-  if (!c) return { ...base, clients: [] };
+  if (!c) return { ...base, clients: [], accounts: [] };
 
   const [docs, contacts, accounts] = await Promise.all([
     prismadb.okrhub_FreeAgentDocument.findMany(),
-    prismadb.okrhub_FreeAgentContact.findMany({ select: { url: true, name: true, brand_override: true } }),
+    prismadb.okrhub_FreeAgentContact.findMany({ select: { url: true, name: true, brand_override: true, account_override: true } }),
     prismadb.crm_Accounts.findMany({
       where: { deletedAt: null },
-      select: { name: true, tags: true, opportunities: { where: { deletedAt: null }, select: { brand: true } } },
+      orderBy: { name: "asc" },
+      select: { id: true, name: true, tags: true, opportunities: { where: { deletedAt: null }, select: { brand: true } } },
     }),
   ]);
-  const brands = resolveBrands(
+  const resolved = resolveClients(
     contacts,
-    accounts.map((a) => ({ name: a.name, tags: a.tags, opportunityBrands: a.opportunities.map((o) => o.brand) })),
+    accounts.map((a) => ({ id: a.id, name: a.name, tags: a.tags, opportunityBrands: a.opportunities.map((o) => o.brand) })),
   );
   const revenueByClient = new Map<string, number>();
   for (const d of docs) {
@@ -71,13 +75,15 @@ export async function getFreeAgentStatus(): Promise<FreeAgentStatus | null> {
     .map((x) => ({
       url: x.url,
       name: x.name,
-      brand: brands.get(x.url) ?? null,
+      brand: resolved.get(x.url)?.brand ?? null,
       override: x.brand_override,
+      accountId: resolved.get(x.url)?.accountId ?? null,
+      accountOverride: x.account_override,
       revenue: Math.round((revenueByClient.get(x.url) ?? 0) * 100) / 100,
     }))
     // Unassigned first, then biggest clients.
     .sort((a, b) => Number(!!a.brand) - Number(!!b.brand) || b.revenue - a.revenue);
-  return { ...base, clients };
+  return { ...base, clients, accounts: accounts.map((a) => ({ id: a.id, name: a.name })) };
 }
 
 export async function syncFreeAgentNow() {
@@ -109,4 +115,17 @@ export async function disconnectFreeAgent() {
   await disconnect();
   revalidate();
   return { data: true };
+}
+
+/** OKR-175: link (or unlink, with null) a FreeAgent client to a CRM account. */
+export async function setFreeAgentClientAccount(url: string, accountId: string | null) {
+  const denied = await guard();
+  if (denied) return denied;
+  if (accountId) {
+    const exists = await prismadb.crm_Accounts.findFirst({ where: { id: accountId, deletedAt: null }, select: { id: true } });
+    if (!exists) return { error: "Unknown account" };
+  }
+  await prismadb.okrhub_FreeAgentContact.update({ where: { url }, data: { account_override: accountId } });
+  revalidate();
+  return { data: { url } };
 }

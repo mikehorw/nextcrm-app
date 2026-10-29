@@ -2347,6 +2347,8 @@ model okrhub_FreeAgentContact {
   url            String   @id
   name           String
   brand_override String?
+  /// OKR-175: CRM account this client is, when the names don't match.
+  account_override String? @db.Uuid
   synced_at      DateTime @default(now())
 }
 

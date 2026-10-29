@@ -6,6 +6,8 @@ import { getGoalsWithProgress } from "@/actions/okrhub/goals";
 import { getFreeAgentStatus } from "@/actions/okrhub/freeagent";
 import { GoalsBoard } from "@/components/okrhub/goals-board";
 import { FreeAgentPanel } from "@/components/okrhub/freeagent-panel";
+import { getGoalsCharts } from "@/actions/okrhub/charts";
+import { GoalsCharts } from "@/components/okrhub/goals-charts";
 
 export const dynamic = "force-dynamic";
 
@@ -19,9 +21,10 @@ const GoalsPage = async (props: { searchParams: Promise<{ freeagent?: string }> 
   }
   const { freeagent } = await props.searchParams;
   const canEdit = isManagerOrAdmin(user);
-  const [goals, faStatus] = await Promise.all([
+  const [goals, faStatus, charts] = await Promise.all([
     getGoalsWithProgress(),
     canEdit ? getFreeAgentStatus() : Promise.resolve(null),
+    canEdit ? getGoalsCharts() : Promise.resolve(null),
   ]);
   return (
     <Container
@@ -30,6 +33,7 @@ const GoalsPage = async (props: { searchParams: Promise<{ freeagent?: string }> 
     >
       <div className="space-y-6">
         <GoalsBoard goals={goals} canEdit={canEdit} />
+        {charts && <GoalsCharts data={charts} />}
         {faStatus && <FreeAgentPanel status={faStatus} notice={freeagent} />}
       </div>
     </Container>

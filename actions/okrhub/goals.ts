@@ -19,7 +19,7 @@ import {
   validateGoal,
   type GoalInput,
 } from "@/lib/okrhub/goals";
-import { revenueFor, resolveBrands } from "@/lib/okrhub/revenue";
+import { revenueFor, resolveClients } from "@/lib/okrhub/revenue";
 import { isManagerOrAdmin } from "@/lib/authz";
 
 export type GoalWithProgress = {
@@ -47,16 +47,17 @@ async function loadRevenueInputs() {
   if (!connection) return null;
   const [docs, contacts, accounts] = await Promise.all([
     prismadb.okrhub_FreeAgentDocument.findMany(),
-    prismadb.okrhub_FreeAgentContact.findMany({ select: { url: true, name: true, brand_override: true } }),
+    prismadb.okrhub_FreeAgentContact.findMany({ select: { url: true, name: true, brand_override: true, account_override: true } }),
     prismadb.crm_Accounts.findMany({
       where: { deletedAt: null },
-      select: { name: true, tags: true, opportunities: { where: { deletedAt: null }, select: { brand: true } } },
+      select: { id: true, name: true, tags: true, opportunities: { where: { deletedAt: null }, select: { brand: true } } },
     }),
   ]);
-  const brands = resolveBrands(
+  const clients = resolveClients(
     contacts,
-    accounts.map((a) => ({ name: a.name, tags: a.tags, opportunityBrands: a.opportunities.map((o) => o.brand) })),
+    accounts.map((a) => ({ id: a.id, name: a.name, tags: a.tags, opportunityBrands: a.opportunities.map((o) => o.brand) })),
   );
+  const brands = new Map(Array.from(clients, ([url, c]) => [url, c.brand]));
   return { docs, brands };
 }
 

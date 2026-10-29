@@ -14,6 +14,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { BRANDS } from "@/lib/okrhub/fields";
 import {
   disconnectFreeAgent,
+  setFreeAgentClientAccount,
   setFreeAgentClientBrand,
   syncFreeAgentNow,
   type FreeAgentStatus,
@@ -105,6 +106,30 @@ export function FreeAgentPanel({ status, notice }: { status: FreeAgentStatus; no
                       {gbp(c.revenue)} invoiced{c.brand && !c.override ? " · brand from CRM account" : ""}
                     </p>
                   </div>
+                  <div className="flex flex-wrap gap-2">
+                  <Select
+                    value={c.accountOverride ?? AUTO}
+                    disabled={busy}
+                    onValueChange={(v) =>
+                      run(() => setFreeAgentClientAccount(c.url, v === AUTO ? null : v), "CRM account saved")
+                    }
+                  >
+                    <SelectTrigger className="h-8 w-[230px]" aria-label={`CRM account for ${c.name}`}>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value={AUTO}>
+                        {c.accountId && !c.accountOverride
+                          ? `Account: auto (${status.accounts.find((a) => a.id === c.accountId)?.name ?? "match"})`
+                          : "Account: auto (no match)"}
+                      </SelectItem>
+                      {status.accounts.map((a) => (
+                        <SelectItem key={a.id} value={a.id}>
+                          {a.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                   <Select
                     value={c.override ?? AUTO}
                     disabled={busy}
@@ -116,7 +141,7 @@ export function FreeAgentPanel({ status, notice }: { status: FreeAgentStatus; no
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value={AUTO}>{c.brand && !c.override ? `Auto (${c.brand})` : "Auto (no match)"}</SelectItem>
+                      <SelectItem value={AUTO}>{c.brand && !c.override ? `Brand: auto (${c.brand})` : "Brand: auto (none)"}</SelectItem>
                       {BRANDS.map((b) => (
                         <SelectItem key={b} value={b}>
                           {b}
@@ -124,6 +149,7 @@ export function FreeAgentPanel({ status, notice }: { status: FreeAgentStatus; no
                       ))}
                     </SelectContent>
                   </Select>
+                  </div>
                 </div>
               ))}
             </div>
