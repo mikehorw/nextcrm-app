@@ -87,9 +87,19 @@ async function accessToken(): Promise<string> {
   return t.access_token;
 }
 
+/** The rel=next URL from a Link header. FreeAgent quotes rel with single quotes. */
+export function nextLink(header: string | null): string | null {
+  for (const part of (header ?? "").split(",")) {
+    const m = /<([^>]+)>\s*;\s*rel\s*=\s*["']?next["']?/i.exec(part);
+    if (m) return m[1];
+  }
+  return null;
+}
+
 /** GET every page of a list endpoint (per_page 100, following the Link header). */
 async function getAll<T>(path: string, key: string, token: string): Promise<T[]> {
   const out: T[] = [];
+  let total = 0;
   let url: string | null = `${API}${path}${path.includes("?") ? "&" : "?"}per_page=100`;
   while (url) {
     const res: Response = await fetch(url, {
@@ -103,9 +113,11 @@ async function getAll<T>(path: string, key: string, token: string): Promise<T[]>
     if (!res.ok) throw new Error(`FreeAgent ${path}: HTTP ${res.status}`);
     const body = (await res.json()) as Record<string, T[]>;
     out.push(...(body[key] ?? []));
-    const next = /<([^>]+)>;\s*rel="next"/.exec(res.headers.get("link") ?? "");
-    url = next ? next[1] : null;
+    url = nextLink(res.headers.get("link"));
+    total = Number(res.headers.get("x-total-count")) || total;
   }
+  // Never report a partial list as complete: revenue would silently be short.
+  if (total && out.length < total) throw new Error(`FreeAgent ${path}: got ${out.length} of ${total}`);
   return out;
 }
 

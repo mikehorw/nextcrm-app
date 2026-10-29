@@ -70,3 +70,15 @@ describe("syncFromDate", () => {
     expect(syncFromDate(new Date("2026-07-15T00:00:00Z"))).toBe("2024-08-01");
   });
 });
+
+describe("nextLink", () => {
+  const { nextLink } = jest.requireActual("@/lib/okrhub/freeagent");
+  it("reads FreeAgent's single-quoted rel and the usual double-quoted form", () => {
+    expect(nextLink("<https://api.freeagent.com/v2/invoices?page=2>; rel='next', <https://x?page=5>; rel='last'")).toBe(
+      "https://api.freeagent.com/v2/invoices?page=2",
+    );
+    expect(nextLink('<https://x?page=1>; rel="prev", <https://x?page=3>; rel="next"')).toBe("https://x?page=3");
+    expect(nextLink("<https://x?page=1>; rel='prev'")).toBeNull();
+    expect(nextLink(null)).toBeNull();
+  });
+});
