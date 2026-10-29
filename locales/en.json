@@ -491,7 +491,7 @@
     "last7Days": "Last 7 days",
     "last30Days": "Last 30 days",
     "last90Days": "Last 90 days",
-    "yearToDate": "Year to date",
+    "yearToDate": "Financial year to date",
     "allTime": "All time",
     "customRange": "Custom",
     "from": "From",
@@ -513,7 +513,7 @@
     "sales": {
       "title": "Sales Reports",
       "description": "Revenue, pipeline, and deal analytics",
-      "revenue": "Total Revenue",
+      "revenue": "Total Revenue (invoiced, net)",
       "pipeline": "Pipeline Value",
       "avgDeal": "Average Deal Size",
       "winRate": "Win Rate",

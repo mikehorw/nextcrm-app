@@ -5,6 +5,20 @@ import { getExchangeRates, convertAmount } from "@/lib/currency";
 import { Decimal } from "@prisma/client/runtime/client";
 import type { ReportScope } from "@/lib/authz/scopes/report-scope";
 import { getReportScope } from "@/lib/authz/scopes/report-scope";
+import { revenueFor } from "@/lib/okrhub/revenue";
+
+/** OKR Hub fork (OKR-174): FreeAgent invoiced revenue (net, GBP) between the filter dates; null if not connected. */
+async function okrhubInvoicedRevenue(filters: ReportFilters): Promise<number | null> {
+  // Optional chaining keeps upstream unit tests (which mock only upstream models) working.
+  const connected = await prismadb.okrhub_FreeAgentConnection?.findUnique({ where: { id: "freeagent" }, select: { id: true } });
+  if (!connected) return null;
+  const docs = await prismadb.okrhub_FreeAgentDocument.findMany({
+    where: { dated_on: { gte: startOfDayUTC(filters.dateFrom), lte: filters.dateTo } },
+  });
+  const window = { gte: startOfDayUTC(filters.dateFrom), lt: new Date(filters.dateTo.getTime() + 1) };
+  return revenueFor(docs, new Map(), window, null).revenue.toNumber();
+}
+const startOfDayUTC = (d: Date) => new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
 
 const DEFAULT_SCOPE: ReportScope = getReportScope({ id: "", role: "manager" });
 
@@ -20,6 +34,11 @@ export async function getRevenue(
   displayCurrency: string,
   scope: ReportScope = DEFAULT_SCOPE,
 ): Promise<number> {
+  // OKR Hub fork (OKR-174): when FreeAgent is connected, revenue is what was
+  // invoiced in the period (net of VAT, less credit notes), as on Goals and the
+  // dashboard. Upstream counted won deals by creation date.
+  const fa = await okrhubInvoicedRevenue(filters);
+  if (fa !== null) return fa;
   const opps = await prismadb.crm_Opportunities.findMany({
     where: { ...dateRangeWhere(filters), status: "CLOSED", ...scope.opportunity },
     select: { budget: true, currency: true },
