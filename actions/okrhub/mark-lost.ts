@@ -9,7 +9,6 @@ import { LOST_REASONS } from "@/lib/okrhub/fields";
 import {
   requireAuthenticated,
   assertCanWriteOpportunity,
-  PARTNER_EDIT,
   AuthenticationError,
   AuthorizationError,
 } from "@/lib/authz";
@@ -22,13 +21,13 @@ export async function markOpportunityLost(id: string, reason: string) {
 
   let user;
   try {
-    user = await requireAuthenticated({ partner: true });
+    user = await requireAuthenticated();
   } catch (e) {
     if (e instanceof AuthenticationError) return { error: "Unauthorized" };
     throw e;
   }
   try {
-    await assertCanWriteOpportunity(user, id, PARTNER_EDIT);
+    await assertCanWriteOpportunity(user, id);
   } catch (e) {
     if (e instanceof AuthorizationError) return { error: "Forbidden" };
     throw e;
