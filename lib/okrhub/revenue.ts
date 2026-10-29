@@ -51,11 +51,18 @@ export function resolveClients(
   accounts: AccountBrandInfo[],
 ): Map<string, { accountId: string | null; brand: string | null }> {
   const byId = new Map(accounts.filter((a) => a.id).map((a) => [a.id as string, a]));
+  // Same-named accounts (duplicates): prefer the one with deals; still tied -> no match.
   const byName = new Map<string, AccountBrandInfo | null>();
+  const groups = new Map<string, AccountBrandInfo[]>();
   for (const a of accounts) {
     const key = normaliseName(a.name);
     if (!key) continue;
-    byName.set(key, byName.has(key) ? null : a); // ambiguous names match nothing
+    groups.set(key, [...(groups.get(key) ?? []), a]);
+  }
+  for (const [key, list] of Array.from(groups)) {
+    const withDeals = list.filter((a) => a.opportunityBrands.length > 0);
+    const pick = list.length === 1 ? list[0] : withDeals.length === 1 ? withDeals[0] : null;
+    byName.set(key, pick);
   }
   const brands = resolveBrands(contacts, accounts);
   const out = new Map<string, { accountId: string | null; brand: string | null }>();

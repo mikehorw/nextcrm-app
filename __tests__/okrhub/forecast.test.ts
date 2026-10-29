@@ -114,3 +114,29 @@ describe("resolveClients", () => {
     expect(m.get("c/lorien")).toEqual({ accountId: "lsm", brand: MC });
   });
 });
+
+describe("rate counts the current month once it is invoiced", () => {
+  it("three months invoiced including this one -> per-month over three", () => {
+    const c = committedByMonth(
+      [{ accountId: "a", value: 100000, brand: MC, wonAt: d("2026-07-05") }],
+      [
+        { date: d("2026-08-03"), value: 14400, brand: MC, accountId: "a" },
+        { date: d("2026-09-01"), value: 14400, brand: MC, accountId: "a" },
+        { date: d("2026-10-01"), value: 14400, brand: MC, accountId: "a" },
+      ],
+      null,
+      NOW,
+    );
+    expect(c.streams[0].perMonth).toBe(14400);
+  });
+  it("duplicate account names: the one with deals wins", () => {
+    const m = resolveClients(
+      [{ url: "c/jf", name: "James Fisher & Sons PLC", brand_override: null, account_override: null }],
+      [
+        { id: "a1", name: "James Fisher and Sons plc", tags: [], opportunityBrands: [HUB] },
+        { id: "a2", name: "James Fisher & Sons", tags: [], opportunityBrands: [] },
+      ],
+    );
+    expect(m.get("c/jf")?.accountId).toBe("a1");
+  });
+});

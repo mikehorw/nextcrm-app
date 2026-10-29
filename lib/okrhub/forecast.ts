@@ -83,8 +83,9 @@ export function committedByMonth(won: WonDeal[], invoices: Invoice[], brand: Bra
       const first = Math.min(...inv.map((i) => monthKey(i.date)));
       const last = Math.max(...inv.map((i) => monthKey(i.date)));
       if (nowKey - last > STALE_MONTHS) continue;
-      const completed = Math.max(1, nowKey - first); // completed months, current month excluded
-      perMonth = Math.max(invoiced / completed, 1);
+      // Months since the first invoice, counting this month only once it has been invoiced.
+      const months = Math.max(1, nowKey - first + (last === nowKey ? 1 : 0));
+      perMonth = Math.max(invoiced / months, 1);
     } else {
       if (nowKey - monthKey(since) > STALE_MONTHS) continue;
       perMonth = remaining; // not invoiced yet: all next month
