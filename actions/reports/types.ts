@@ -40,7 +40,7 @@ export const DATE_PRESETS: DatePreset[] = [
   { key: "30d", labelKey: "last30Days", getRange: () => { const to = new Date(); const from = new Date(); from.setDate(from.getDate() - 30); return { from, to }; } },
   { key: "90d", labelKey: "last90Days", getRange: () => { const to = new Date(); const from = new Date(); from.setDate(from.getDate() - 90); return { from, to }; } },
   // OKR Hub fork: financial year to date (FY runs 1 Aug to 31 Jul), not calendar year.
-  { key: "ytd", labelKey: "yearToDate", getRange: () => { const to = new Date(); const fyStartYear = to.getMonth() >= 7 ? to.getFullYear() : to.getFullYear() - 1; const from = new Date(fyStartYear, 7, 1); return { from, to }; } },
+  { key: "ytd", labelKey: "yearToDate", getRange: () => { const to = new Date(); const fyStartYear = to.getMonth() >= 7 ? to.getFullYear() : to.getFullYear() - 1; const from = new Date(Date.UTC(fyStartYear, 7, 1)); return { from, to }; } }, // UTC so the URL date is 1 Aug, not 31 Jul in BST
   { key: "all", labelKey: "allTime", getRange: () => { const to = new Date(); const from = new Date(2020, 0, 1); return { from, to }; } },
 ];
 
