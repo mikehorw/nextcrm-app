@@ -161,3 +161,25 @@ export async function deleteGoal(id: string) {
   revalidate();
   return { data: { id } };
 }
+
+/**
+ * OKR-174: FreeAgent revenue (net, GBP) for the current accounting year, all
+ * brands, for the home dashboard. null when not connected or the viewer isn't
+ * a manager or admin.
+ */
+export async function getCurrentFYRevenue(): Promise<number | null> {
+  let user;
+  try {
+    user = await requireAuthenticated();
+  } catch (e) {
+    if (e instanceof AuthenticationError) return null;
+    throw e;
+  }
+  if (!isManagerOrAdmin(user)) return null;
+  const rev = await loadRevenueInputs();
+  if (!rev) return null;
+  const now = new Date();
+  const y = now.getUTCMonth() >= 7 ? now.getUTCFullYear() : now.getUTCFullYear() - 1;
+  const window = { gte: new Date(Date.UTC(y, 7, 1)), lt: new Date(Date.UTC(y + 1, 7, 1)) };
+  return revenueFor(rev.docs, rev.brands, window, null).revenue.toNumber();
+}

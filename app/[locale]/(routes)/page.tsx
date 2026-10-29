@@ -36,6 +36,7 @@ import { getDocumentsCount } from "@/actions/dashboard/get-documents-count";
 import { getActiveUsersCount } from "@/actions/dashboard/get-active-users-count";
 import { getOpportunitiesCount } from "@/actions/dashboard/get-opportunities-count";
 import { getExpectedRevenue } from "@/actions/crm/opportunity/get-expected-revenue";
+import { getCurrentFYRevenue } from "@/actions/okrhub/goals"; // OKR Hub fork (OKR-174)
 import { getTranslations } from "next-intl/server";
 import { cookies } from "next/headers";
 import { getDefaultCurrency, formatCurrency as formatCurrencyUtil } from "@/lib/currency";
@@ -69,6 +70,7 @@ const DashboardPage = async () => {
   const users = await getActiveUsersCount();
   const accounts = await getAccountsCount();
   const revenue = await getExpectedRevenue(displayCurrency);
+  const fyRevenue = await getCurrentFYRevenue(); // OKR Hub fork: FreeAgent, net, current FY
   const documents = await getDocumentsCount();
   const opportunities = await getOpportunitiesCount();
   const usersTasks = await getUsersTasksCount(userId);
@@ -85,12 +87,15 @@ const DashboardPage = async () => {
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">
-                {dict("totalRevenue")}
+                {/* OKR Hub fork (OKR-174): FreeAgent invoiced revenue, net, current accounting year */}
+                Total revenue - Current FY
               </CardTitle>
               <DollarSignIcon className="w-4 h-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-medium">{"0"}</div>
+              <div className="text-2xl font-medium">
+                {fyRevenue === null ? "n/a" : formatCurrencyUtil(new Decimal(fyRevenue), "GBP")}
+              </div>
             </CardContent>
           </Card>
         </Suspense>
