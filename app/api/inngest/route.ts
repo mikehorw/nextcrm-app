@@ -32,6 +32,7 @@ import { enrichDocument } from "@/inngest/functions/documents/enrich-document";
 import { generateDocumentThumbnail } from "@/inngest/functions/documents/generate-thumbnail";
 import { syncExchangeRates } from "@/inngest/functions/ecb/sync-exchange-rates";
 import { getPluginFunctions } from "@/lib/plugins/inngest";
+import { okrhubFreeAgentSync } from "@/inngest/functions/okrhub/freeagent-sync"; // OKR Hub fork (OKR-174)
 
 export const { GET, POST, PUT } = serve({
   client: inngest,
@@ -67,6 +68,7 @@ export const { GET, POST, PUT } = serve({
     enrichDocument,
     generateDocumentThumbnail,
     syncExchangeRates,
+    okrhubFreeAgentSync,
     ...getPluginFunctions(),
   ],
 });

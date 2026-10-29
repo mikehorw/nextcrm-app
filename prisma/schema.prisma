@@ -2329,3 +2329,40 @@ model crm_OrderLines {
   @@index([orderId])
   @@index([productId])
 }
+
+/// OKR Hub fork (OKR-174): the FreeAgent connection (single row, read-only access).
+model okrhub_FreeAgentConnection {
+  id                String    @id @default("freeagent")
+  access_token_enc  String
+  refresh_token_enc String
+  expires_at        DateTime
+  connected_by      String?   @db.Uuid
+  connected_at      DateTime  @default(now())
+  last_sync_at      DateTime?
+  last_sync_error   String?
+}
+
+/// OKR Hub fork (OKR-174): FreeAgent clients, with an optional brand set by hand.
+model okrhub_FreeAgentContact {
+  url            String   @id
+  name           String
+  brand_override String?
+  synced_at      DateTime @default(now())
+}
+
+/// OKR Hub fork (OKR-174): FreeAgent sales invoices and credit notes (read-only copy).
+model okrhub_FreeAgentDocument {
+  url           String   @id
+  kind          String
+  contact_url   String?
+  reference     String?
+  dated_on      DateTime @db.Date
+  status        String
+  currency      String   @db.VarChar(3)
+  net_value     Decimal  @db.Decimal(18, 2)
+  exchange_rate Decimal? @db.Decimal(18, 8)
+  synced_at     DateTime @default(now())
+
+  @@index([dated_on])
+  @@index([contact_url])
+}

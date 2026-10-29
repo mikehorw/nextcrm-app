@@ -74,6 +74,46 @@ const blank = (): FormState => {
   };
 };
 
+function Measure({
+  label,
+  value,
+  percent,
+  goal,
+  note,
+}: {
+  label: string;
+  value: number;
+  percent: number;
+  goal: GoalWithProgress;
+  note: string;
+}) {
+  return (
+    <div className="space-y-1.5">
+      <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">{label}</p>
+      <div className="flex items-baseline justify-between text-sm">
+        <span className="text-lg font-semibold">{money(value, goal.currency)}</span>
+        <span className="text-muted-foreground">
+          of {money(goal.amount, goal.currency)} ({percent}%)
+        </span>
+      </div>
+      <div
+        className="h-2.5 w-full overflow-hidden rounded-full bg-muted"
+        role="progressbar"
+        aria-valuenow={percent}
+        aria-valuemin={0}
+        aria-valuemax={100}
+        aria-label={`${goal.name}: ${label}`}
+      >
+        <div
+          className={`h-full rounded-full ${percent >= 100 ? "bg-emerald-600" : "bg-primary"}`}
+          style={{ width: `${Math.min(Math.max(percent, 0), 100)}%` }}
+        />
+      </div>
+      <p className="text-xs text-muted-foreground">{note}</p>
+    </div>
+  );
+}
+
 function GoalCard({
   goal,
   canEdit,
@@ -85,7 +125,6 @@ function GoalCard({
   onEdit: () => void;
   onDelete: () => void;
 }) {
-  const width = Math.min(goal.percent, 100);
   const remaining = Math.max(goal.amount - goal.achieved, 0);
   return (
     <Card>
@@ -117,30 +156,27 @@ function GoalCard({
           </div>
         </div>
       </CardHeader>
-      <CardContent className="space-y-2">
-        <div className="flex items-baseline justify-between text-sm">
-          <span className="text-lg font-semibold">{money(goal.achieved, goal.currency)}</span>
-          <span className="text-muted-foreground">
-            of {money(goal.amount, goal.currency)} ({goal.percent}%)
-          </span>
-        </div>
-        <div
-          className="h-2.5 w-full overflow-hidden rounded-full bg-muted"
-          role="progressbar"
-          aria-valuenow={goal.percent}
-          aria-valuemin={0}
-          aria-valuemax={100}
-          aria-label={`${goal.name} progress`}
-        >
-          <div
-            className={`h-full rounded-full ${goal.percent >= 100 ? "bg-emerald-600" : "bg-primary"}`}
-            style={{ width: `${width}%` }}
+      <CardContent className="space-y-4">
+        {goal.revenue !== null && (
+          <Measure
+            label="Revenue (FreeAgent, net)"
+            value={goal.revenue}
+            percent={goal.revenuePercent ?? 0}
+            goal={goal}
+            note={
+              `${goal.invoiceCount} ${goal.invoiceCount === 1 ? "invoice" : "invoices"}` +
+              (goal.revenue < goal.amount ? `, ${money(goal.amount - goal.revenue, goal.currency)} to go` : ", target reached") +
+              (goal.unassignedRevenue ? `; ${money(goal.unassignedRevenue, goal.currency)} from clients with no brand yet` : "")
+            }
           />
-        </div>
-        <p className="text-xs text-muted-foreground">
-          {goal.wonCount} won {goal.wonCount === 1 ? "deal" : "deals"}
-          {remaining > 0 ? `, ${money(remaining, goal.currency)} to go` : ", target reached"}
-        </p>
+        )}
+        <Measure
+          label="Won (CRM)"
+          value={goal.achieved}
+          percent={goal.percent}
+          goal={goal}
+          note={`${goal.wonCount} won ${goal.wonCount === 1 ? "deal" : "deals"}${remaining > 0 ? `, ${money(remaining, goal.currency)} to go` : ", target reached"}`}
+        />
       </CardContent>
     </Card>
   );

@@ -19,6 +19,8 @@ import {
   validateGoal,
   type GoalInput,
 } from "@/lib/okrhub/goals";
+import { revenueFor, resolveBrands } from "@/lib/okrhub/revenue";
+import { isManagerOrAdmin } from "@/lib/authz";
 
 export type GoalWithProgress = {
   id: string;
@@ -31,7 +33,32 @@ export type GoalWithProgress = {
   achieved: number;
   percent: number;
   wonCount: number;
+  /** OKR-174: FreeAgent revenue (net, GBP). null when FreeAgent isn't connected or the viewer can't see it. */
+  revenue: number | null;
+  revenuePercent: number | null;
+  invoiceCount: number;
+  /** Revenue from clients with no brand yet (all-brands goals only). */
+  unassignedRevenue: number;
 };
+
+/** OKR-174: everything needed to compute revenue, loaded once per page. */
+async function loadRevenueInputs() {
+  const connection = await prismadb.okrhub_FreeAgentConnection.findUnique({ where: { id: "freeagent" } });
+  if (!connection) return null;
+  const [docs, contacts, accounts] = await Promise.all([
+    prismadb.okrhub_FreeAgentDocument.findMany(),
+    prismadb.okrhub_FreeAgentContact.findMany({ select: { url: true, name: true, brand_override: true } }),
+    prismadb.crm_Accounts.findMany({
+      where: { deletedAt: null },
+      select: { name: true, tags: true, opportunities: { where: { deletedAt: null }, select: { brand: true } } },
+    }),
+  ]);
+  const brands = resolveBrands(
+    contacts,
+    accounts.map((a) => ({ name: a.name, tags: a.tags, opportunityBrands: a.opportunities.map((o) => o.brand) })),
+  );
+  return { docs, brands };
+}
 
 const day = (d: Date) => d.toISOString().slice(0, 10);
 
@@ -52,6 +79,8 @@ export async function getGoalsWithProgress(): Promise<GoalWithProgress[]> {
     getExchangeRates(),
   ]);
   const scope = opportunityReadScopeWhere(user);
+  // Revenue is company-wide financial data: managers and admins only.
+  const rev = isManagerOrAdmin(user) ? await loadRevenueInputs() : null;
 
   return Promise.all(
     goals.map(async (g) => {
@@ -65,6 +94,7 @@ export async function getGoalsWithProgress(): Promise<GoalWithProgress[]> {
         select: { budget: true, currency: true },
       });
       const achieved = sumWon(deals, g.currency, rates);
+      const r = rev ? revenueFor(rev.docs, rev.brands, goalWindow(g.start_date, g.end_date), g.brand) : null;
       return {
         id: g.id,
         name: g.name,
@@ -76,6 +106,10 @@ export async function getGoalsWithProgress(): Promise<GoalWithProgress[]> {
         achieved: achieved.toNumber(),
         percent: percentOf(achieved, g.amount),
         wonCount: deals.length,
+        revenue: r ? r.revenue.toNumber() : null,
+        revenuePercent: r ? percentOf(r.revenue, g.amount) : null,
+        invoiceCount: r?.invoices ?? 0,
+        unassignedRevenue: r && !g.brand ? r.unassigned.toNumber() : 0,
       };
     }),
   );
