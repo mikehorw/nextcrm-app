@@ -82,3 +82,23 @@ describe("nextLink", () => {
     expect(nextLink(null)).toBeNull();
   });
 });
+
+describe("outstandingInvoices", () => {
+  const { outstandingInvoices } = jest.requireActual("@/lib/okrhub/revenue");
+  const inv = (o: object) => ({ kind: "invoice", status: "Open", currency: "GBP", exchange_rate: null, due_value: "0", due_on: null, ...o });
+  it("sums what is still owed, incl. VAT, and flags overdue", () => {
+    const r = outstandingInvoices(
+      [
+        inv({ due_value: "14400", due_on: new Date("2026-11-10T00:00:00Z") }),
+        inv({ status: "Overdue", due_value: "4800", due_on: new Date("2026-10-01T00:00:00Z") }),
+        inv({ status: "Paid", due_value: "0" }),
+        inv({ status: "Draft", due_value: "999" }),
+        inv({ status: "Cancelled", due_value: "999" }),
+        inv({ status: "Written-off", due_value: "999" }),
+        { ...inv({ due_value: "50" }), kind: "credit_note" },
+      ],
+      new Date("2026-10-29T00:00:00Z"),
+    );
+    expect(r).toEqual({ total: 19200, count: 2, overdue: 1, overdueTotal: 4800 });
+  });
+});

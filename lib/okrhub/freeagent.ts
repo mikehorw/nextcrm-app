@@ -131,6 +131,8 @@ type FADoc = {
   currency?: string | null;
   net_value?: string | number | null;
   exchange_rate?: string | number | null;
+  due_value?: string | number | null;
+  due_on?: string | null;
 };
 
 /** 1 Aug of the accounting year before the current one (Aug to Jul years). */
@@ -173,6 +175,8 @@ export async function syncFreeAgent(): Promise<{ contacts: number; invoices: num
         currency: (d.currency ?? "GBP").slice(0, 3),
         net_value: Number(d.net_value ?? 0),
         exchange_rate: d.exchange_rate == null ? null : Number(d.exchange_rate),
+        due_value: d.due_value == null ? null : Number(d.due_value),
+        due_on: d.due_on ? new Date(`${d.due_on}T00:00:00.000Z`) : null,
         synced_at: new Date(),
       };
       await prismadb.okrhub_FreeAgentDocument.upsert({ where: { url: d.url }, create: { url: d.url, ...data }, update: data });

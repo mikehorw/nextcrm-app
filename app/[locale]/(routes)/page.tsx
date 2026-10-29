@@ -23,7 +23,6 @@ import {
   getTasksCount,
   getUsersTasksCount,
 } from "@/actions/dashboard/get-tasks-count";
-import { getInvoicesCount } from "@/actions/dashboard/get-invoices-count";
 import { getCampaignsCount } from "@/actions/dashboard/get-campaigns-count";
 import { getTargetsCount } from "@/actions/dashboard/get-targets-count";
 import { getLeadsCount } from "@/actions/dashboard/get-leads-count";
@@ -36,7 +35,7 @@ import { getDocumentsCount } from "@/actions/dashboard/get-documents-count";
 import { getActiveUsersCount } from "@/actions/dashboard/get-active-users-count";
 import { getOpportunitiesCount } from "@/actions/dashboard/get-opportunities-count";
 import { getExpectedRevenue } from "@/actions/crm/opportunity/get-expected-revenue";
-import { getCurrentFYRevenue } from "@/actions/okrhub/goals"; // OKR Hub fork (OKR-174)
+import { getCurrentFYRevenue, getOutstandingInvoices } from "@/actions/okrhub/goals"; // OKR Hub fork (OKR-174)
 import { getTranslations } from "next-intl/server";
 import { cookies } from "next/headers";
 import { getDefaultCurrency, formatCurrency as formatCurrencyUtil } from "@/lib/currency";
@@ -60,7 +59,6 @@ const DashboardPage = async () => {
   const dict = await getTranslations("DashboardPage");
   const leads = await getLeadsCount();
   const tasks = await getTasksCount();
-  const invoices = await getInvoicesCount();
   const campaigns = await getCampaignsCount();
   const targets = await getTargetsCount();
   const storage = await getStorageSize();
@@ -71,6 +69,7 @@ const DashboardPage = async () => {
   const accounts = await getAccountsCount();
   const revenue = await getExpectedRevenue(displayCurrency);
   const fyRevenue = await getCurrentFYRevenue(); // OKR Hub fork: FreeAgent, net, current FY
+  const outstanding = await getOutstandingInvoices(); // OKR Hub fork: FreeAgent unpaid, incl. VAT
   const documents = await getDocumentsCount();
   const opportunities = await getOpportunitiesCount();
   const usersTasks = await getUsersTasksCount(userId);
@@ -121,12 +120,25 @@ const DashboardPage = async () => {
           IconComponent={UserIcon}
           content={users}
         />
-        <DashboardCard
-          href="/invoices"
-          title={dict("invoices")}
-          IconComponent={FileText}
-          content={invoices}
-        />
+        {/* OKR Hub fork (OKR-174): unpaid FreeAgent invoices instead of NextCRM's invoice count */}
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Invoices Outstanding</CardTitle>
+            <FileText className="w-4 h-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-medium">
+              {outstanding === null ? "n/a" : formatCurrencyUtil(new Decimal(outstanding.total), "GBP")}
+            </div>
+            {outstanding !== null && (
+              <p className="text-xs text-muted-foreground">
+                {outstanding.count === 0
+                  ? "Nothing owed. Incl. VAT, from FreeAgent"
+                  : `${outstanding.count} unpaid${outstanding.overdue ? `, ${outstanding.overdue} overdue (${formatCurrencyUtil(new Decimal(outstanding.overdueTotal), "GBP")})` : ""}. Incl. VAT, from FreeAgent`}
+              </p>
+            )}
+          </CardContent>
+        </Card>
         <DashboardCard
           href="/campaigns"
           title={dict("campaigns")}

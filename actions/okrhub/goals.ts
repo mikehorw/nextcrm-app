@@ -19,7 +19,7 @@ import {
   validateGoal,
   type GoalInput,
 } from "@/lib/okrhub/goals";
-import { revenueFor, resolveClients } from "@/lib/okrhub/revenue";
+import { outstandingInvoices, revenueFor, resolveClients } from "@/lib/okrhub/revenue";
 import { isManagerOrAdmin } from "@/lib/authz";
 
 export type GoalWithProgress = {
@@ -182,4 +182,20 @@ export async function getCurrentFYRevenue(): Promise<number | null> {
   const y = now.getUTCMonth() >= 7 ? now.getUTCFullYear() : now.getUTCFullYear() - 1;
   const window = { gte: new Date(Date.UTC(y, 7, 1)), lt: new Date(Date.UTC(y + 1, 7, 1)) };
   return revenueFor(rev.docs, rev.brands, window, null).revenue.toNumber();
+}
+
+/** OKR-174: unpaid FreeAgent invoices (incl. VAT) for the dashboard. null when not connected / not manager or admin. */
+export async function getOutstandingInvoices() {
+  let user;
+  try {
+    user = await requireAuthenticated();
+  } catch (e) {
+    if (e instanceof AuthenticationError) return null;
+    throw e;
+  }
+  if (!isManagerOrAdmin(user)) return null;
+  const connection = await prismadb.okrhub_FreeAgentConnection.findUnique({ where: { id: "freeagent" } });
+  if (!connection) return null;
+  const docs = await prismadb.okrhub_FreeAgentDocument.findMany({ where: { kind: "invoice" } });
+  return outstandingInvoices(docs);
 }

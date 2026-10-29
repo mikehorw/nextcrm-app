@@ -133,3 +133,31 @@ export function revenueFor(
   }
   return { revenue, invoices, unassigned };
 }
+
+/**
+ * Invoices not yet paid (FreeAgent due_value > 0), including VAT, in GBP.
+ * Drafts, cancelled and written-off invoices are not owed.
+ */
+export function outstandingInvoices(
+  docs: { kind: string; status: string; currency: string; exchange_rate: Decimal | number | string | null; due_value: Decimal | number | string | null; due_on: Date | null }[],
+  now: Date = new Date(),
+): { total: number; count: number; overdue: number; overdueTotal: number } {
+  let total = new Decimal(0);
+  let overdueTotal = new Decimal(0);
+  let count = 0;
+  let overdue = 0;
+  for (const d of docs) {
+    if (d.kind !== "invoice" || d.due_value == null) continue;
+    const status = d.status.trim().toLowerCase();
+    if (EXCLUDED.has(status) || status.startsWith("written")) continue;
+    const due = netInGBP({ currency: d.currency, net_value: d.due_value, exchange_rate: d.exchange_rate });
+    if (due.lte(0)) continue;
+    total = total.add(due);
+    count += 1;
+    if (status === "overdue" || (d.due_on && d.due_on < now)) {
+      overdue += 1;
+      overdueTotal = overdueTotal.add(due);
+    }
+  }
+  return { total: total.toNumber(), count, overdue, overdueTotal: overdueTotal.toNumber() };
+}

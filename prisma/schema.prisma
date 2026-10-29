@@ -2363,6 +2363,9 @@ model okrhub_FreeAgentDocument {
   currency      String   @db.VarChar(3)
   net_value     Decimal  @db.Decimal(18, 2)
   exchange_rate Decimal? @db.Decimal(18, 8)
+  /// Amount still owed, including VAT (FreeAgent due_value). 0 when paid.
+  due_value     Decimal? @db.Decimal(18, 2)
+  due_on        DateTime? @db.Date
   synced_at     DateTime @default(now())
 
   @@index([dated_on])
